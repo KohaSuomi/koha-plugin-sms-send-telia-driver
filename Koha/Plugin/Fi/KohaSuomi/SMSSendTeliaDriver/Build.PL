@@ -17,11 +17,8 @@ my $builder = Module::Build->new(
     },
     requires => {
         'SMS::Send::Driver'    => 0,
-        'Mojo::UserAgent'      => 0,
-        'MIME::Base64'         => 0,
-        'Mojo::JSON'           => 0,
-        'Mojo::URL'            => 0,
-        'POSIX'                => 0,
+        'LWP::Curl'            => 0,
+        'URI::Escape'          => 0,
         'Try::Tiny'            => 0,
         'Encode'               => 0,
     },
