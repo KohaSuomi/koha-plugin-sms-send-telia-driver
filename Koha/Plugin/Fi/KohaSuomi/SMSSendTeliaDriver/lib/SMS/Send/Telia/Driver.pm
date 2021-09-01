@@ -2,9 +2,9 @@ package SMS::Send::Telia::Driver;
 #use Modern::Perl; #Can't use this since SMS::Send uses hash keys starting with _
 use SMS::Send::Driver ();
 use LWP::Curl;
-use LWP::UserAgent;
 use URI::Escape;
-use C4::Context;
+use Koha::Notice::Messages;
+use Koha::Libraries;
 use Encode;
 
 use Try::Tiny;
@@ -26,7 +26,6 @@ sub new {
         my $username = $params->{_login} ? $params->{_login} : $params->{_user};
         my $password = $params->{_password} ? $params->{_password} : $params->{_passwd};
         my $baseUrl = $params->{_baseUrl};
-        my $sourceName = $params->{_sourceName};
 
         if (! defined $username ) {
             warn "->send_sms(_login) must be defined!";
@@ -49,13 +48,33 @@ sub new {
         # Create the object
         my $self = bless {}, $class;
 
-        $self->{UserAgent} = LWP::UserAgent->new(timeout => 5);
         $self->{_login} = $username;
         $self->{_password} = $password;
         $self->{_baseUrl} = $baseUrl;
-        $self->{_sourceName} = $sourceName;
+        $self->{_sourceName} = $params->{_sourceName};
+        $self->{_clientId} = $params->{_clientId};
 
         return $self;
+}
+
+sub _get_telia_clientId {
+    my ($config, $message_id) = @_;
+    my $clientid;
+
+    if (ref($config) eq "HASH") {
+        my $notice = Koha::Notice::Messages->find($message_id);
+        my $library = Koha::Libraries->find({branchemail => $notice->{from_address}});
+        my %clientIds = %{$config};
+        foreach $key (keys %clientIds) {
+            if ($key eq $library->branchcode) {
+                $clientid = $clientIds{$key};
+                last;
+            }
+        }
+    } else {
+        $clientid = $config;
+    }
+    return $clientid;
 }
 
 sub send_sms {
@@ -64,13 +83,7 @@ sub send_sms {
     my $message = $params->{text};
     my $recipientNumber = $params->{to};
 
-    my $dbh=C4::Context->dbh;
-    my $branches=$dbh->prepare("SELECT branchcode FROM branches WHERE branchemail = ?;");
-    $branches->execute($self->{_from});
-    my $branch = $branches->fetchrow;
-    my $branchcode = substr($branch, 0, 3);
-
-    my $clientid = C4::Context->config('smsProviders')->{'sonera'}->{$branchcode}->{'clientid'};
+    my $clientid = _get_telia_clientId($self->{_clientId}, $params->{_message_id});;
 
     if (! defined $message ) {
         warn "->send_sms(text) must be defined!";
@@ -78,6 +91,10 @@ sub send_sms {
     }
     if (! defined $recipientNumber ) {
         warn "->send_sms(to) must be defined!";
+        return;
+    }
+    if (! defined $clientid) {
+        warn "->send_sms(clientid) must be defined!";
         return;
     }
 
@@ -90,7 +107,7 @@ sub send_sms {
     $recipientNumber =~ s/'//g;
     $message =~ s/(")|(\$\()|(`)/\\"/g; #Sanitate " so it won't break the system( iconv'ed curl command )
 
-    my $base_url = $self->{baseUrl};
+    my $base_url = $self->{_baseUrl};
     my $parameters = {
         'U'   => $self->{_login},
         'P'   => $self->{_password},
