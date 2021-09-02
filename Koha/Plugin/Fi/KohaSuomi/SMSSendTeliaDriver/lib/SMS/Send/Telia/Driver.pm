@@ -1,7 +1,7 @@
 package SMS::Send::Telia::Driver;
 #use Modern::Perl; #Can't use this since SMS::Send uses hash keys starting with _
 use SMS::Send::Driver ();
-use LWP::Curl;
+use LWP::Simple;
 use URI::Escape;
 use Koha::Notice::Messages;
 use Koha::Libraries;
