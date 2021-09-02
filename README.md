@@ -46,7 +46,7 @@ The driver needs yaml configuration to work. Set your config file path to koha_c
     passwd: baa
     baseUrl: https://providerurl.service
     clientId: foobaa
-    deliveryUrl: https://mykohaurl.fi/api/delivery
+    sourceName: foofoo
 
 There are few options how to add client id's. Firstly there can be one client id as in the example above and secondly there can be client id by branchcodes like in the next example.
 
