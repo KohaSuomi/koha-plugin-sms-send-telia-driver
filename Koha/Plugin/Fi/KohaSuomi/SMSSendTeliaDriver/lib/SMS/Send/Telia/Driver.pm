@@ -127,8 +127,15 @@ sub send_sms {
     $parameters->{'P'} = uri_escape($parameters->{'P'});
 
     my $get_request = '?U='.$parameters->{'U'}.'&P='.$parameters->{'P'}.'&F='.$parameters->{'F'}.'&T='.$parameters->{'T'}.'&M='.$parameters->{'M'};
-
-    my $return = get($base_url.$get_request);
+    my $return; 
+    try {
+        $return = get($base_url.$get_request);
+    } catch {
+        if ($_ =~ /Couldn't resolve host name \(6\)/) {
+            die "Connection failed";
+        }
+        die $_;
+    };
 
     my $delivery_note = $return;
 
