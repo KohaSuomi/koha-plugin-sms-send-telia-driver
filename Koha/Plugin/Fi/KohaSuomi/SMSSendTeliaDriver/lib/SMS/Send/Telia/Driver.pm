@@ -1,11 +1,12 @@
 package SMS::Send::Telia::Driver;
 #use Modern::Perl; #Can't use this since SMS::Send uses hash keys starting with _
 use SMS::Send::Driver ();
-use LWP::Simple;
+use LWP::Curl;
 use URI::Escape;
 use Koha::Notice::Messages;
 use Koha::Libraries;
 use Encode;
+use JSON;
 
 use Try::Tiny;
 
@@ -127,25 +128,34 @@ sub send_sms {
     $parameters->{'P'} = uri_escape($parameters->{'P'});
 
     my $get_request = '?U='.$parameters->{'U'}.'&P='.$parameters->{'P'}.'&F='.$parameters->{'F'}.'&T='.$parameters->{'T'}.'&M='.$parameters->{'M'};
-    my $return; 
+    my $curl = LWP::Curl->new;
+    my $return;
     try {
-        $return = get($base_url.$get_request);
+        $return = $curl->get($base_url.$get_request);
     } catch {
-        if ($_ =~ /Couldn't resolve host name \(6\)/) {
+        my $error = $_;
+        if ($error =~ /Couldn't resolve host name \(6\)/) {
             die "Connection failed";
         }
-        die $_;
+        die "Unknown error: ".$error;
     };
 
-    my $delivery_note = $return;
+    if ($curl->{retcode} == 6) {
+        die "Connection failed";
+    }
 
-    return 1 if ($return =~ m/to+/);
-
-    # remove everything except the delivery note
-    $delivery_note =~ s/^(.*)message\sfailed:\s*//g;
-
-    # pass on the error by throwing an exception - it will be eventually caught
-    # in C4::Letters::_send_message_by_sms()
-    die $delivery_note;
+    my $delivery_note = from_json($return);
+    if (scalar @{$delivery_note->{'accepted'}} > 0) {
+        my $response = $delivery_note->{'accepted'}->[0];
+        if ($response->{'to'} eq $recipientNumber) {
+            return 1;
+        } else {
+            die "Recipient number mismatch";
+        }
+    } else {
+       my $error = $delivery_note->{'rejected'}->[0] ? $delivery_note->{'rejected'}->[0]->{'message'} : "Unknown error";
+       die "Delivery failed with: ".$error;
+    }
+    
 }
 1;
