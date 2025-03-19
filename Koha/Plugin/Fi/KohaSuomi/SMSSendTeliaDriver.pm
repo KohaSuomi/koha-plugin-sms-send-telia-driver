@@ -22,7 +22,7 @@ our $metadata = {
     minimum_version => '17.05.00.000',
     maximum_version => undef,
     version         => $VERSION,
-    description     => 'Send SMS messages to Telia interface',
+    description     => 'Send SMS messages to Telia interface. (Paikalliskannat, jos Telia käytössä)',
 };
 
 ## This is the minimum code required for a plugin's 'new' method
