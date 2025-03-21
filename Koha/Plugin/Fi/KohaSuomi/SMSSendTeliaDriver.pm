@@ -42,4 +42,12 @@ sub new {
     return $self;
 }
 
+## This is the 'upgrade' method. It will be triggered when a newer version of a
+## plugin is installed over an existing older version of a plugin
+sub upgrade {
+    my ( $self, $args ) = @_;
+
+    return 1;
+}
+
 1;
