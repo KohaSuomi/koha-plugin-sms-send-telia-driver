@@ -9,6 +9,7 @@ use base qw(Koha::Plugins::Base);
 ## We will also need to include any Koha libraries we want to access
 use C4::Context;
 use utf8;
+use C4::Languages;
 
 ## Here we set our plugin version
 our $VERSION = "1.0";
@@ -25,6 +26,25 @@ our $metadata = {
     description     => 'Send SMS messages to Telia interface. (Paikalliskannat, jos Telia käytössä)',
 };
 
+sub get_localized_metadata {
+    my ($self) = @_;
+    my $lang = C4::Languages::getlanguage() || 'en';
+    my ($name, $description);
+
+    if ($lang eq 'sv-SE') {
+        $name = "SMS::Send::Telia::Driver";
+        $description = "Skicka SMS-meddelanden till Telia-gränssnittet. (Lokala databaser, om Telia används)";
+    
+    } elsif ($lang eq 'fi-FI' ) {
+        $name = "SMS::Send::Telia::Driver";
+        $description = "Lähetä SMS-viestejä Telia-liittymään. (Paikalliskannat, jos Telia käytössä)";
+    } else {
+        $name = "SMS::Send::Telia::Driver";
+        $description = "Send SMS messages to Telia interface. (Local databases, if Telia is used)";
+    }
+    return ($name, $description);
+}
+
 ## This is the minimum code required for a plugin's 'new' method
 ## More can be added, but none should be removed
 sub new {
@@ -38,6 +58,10 @@ sub new {
     ## This runs some additional magic and checking
     ## and returns our actual $self
     my $self = $class->SUPER::new($args);
+
+    my ($name, $description) = $self->get_localized_metadata();
+    $self->{'metadata'}->{'name'} = $name;
+    $self->{'metadata'}->{'description'} = $description;   
 
     return $self;
 }
